@@ -6,10 +6,14 @@ import (
 	"log"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/mlucas4330/orderflow-pro/internal/db"
+	"github.com/mlucas4330/orderflow-pro/internal/handler"
 )
 
 func main() {
+	router := gin.Default()
+
 	ctx := context.Background()
 
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:5432/%s",
@@ -19,16 +23,16 @@ func main() {
 		os.Getenv("DB_NAME"),
 	)
 
-	conn, err := db.New(ctx, dsn)
+	dbpool, err := db.New(ctx, dsn)
 	if err != nil {
 		log.Fatalf("Falha ao conectar com o banco de dados: %v", err)
 	}
-	defer conn.Close(ctx)
+	defer dbpool.Close()
 
-	err = conn.Ping(ctx)
-	if err != nil {
-		log.Fatalf("Não foi possível fazer o ping no banco de dados: %v", err)
+	healthHandler := handler.HealthHandler{
+		DB: dbpool,
 	}
 
-	log.Println("Conexão com o banco de dados estabelecida com sucesso!")
+	router.GET("/ping", healthHandler.Check)
+	router.Run()
 }

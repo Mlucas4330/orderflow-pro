@@ -1,25 +1,18 @@
-FROM golang:1.24 AS builder
+FROM golang:1.24-alpine AS builder
 
-WORKDIR /app
+WORKDIR /build
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/orderflow-pro ./cmd/order-service
+RUN CGO_ENABLED=0 GOOS=linux go build -o order-service ./cmd/order-service
 
-FROM builder AS tester
-RUN go test -v ./...
+FROM gcr.io/distroless/base-debian12
 
-FROM gcr.io/distroless/base-debian11 AS release
+WORKDIR /app
 
-WORKDIR /
+COPY --from=builder /build/order-service ./order-service
 
-COPY --from=builder app/orderflow-pro /orderflow-pro
-
-EXPOSE 8080
-
-USER nonroot:nonroot
-
-ENTRYPOINT ["/orderflow-pro"]
+CMD ["./order-service"]

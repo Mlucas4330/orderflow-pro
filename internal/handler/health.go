@@ -12,6 +12,10 @@ type HealthHandler struct {
 	DB *pgxpool.Pool
 }
 
+func New(db *pgxpool.Pool) *HealthHandler {
+	return &HealthHandler{DB: db}
+}
+
 func (h *HealthHandler) Check(c *gin.Context) {
 	ctx := c.Request.Context()
 

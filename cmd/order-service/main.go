@@ -29,9 +29,7 @@ func main() {
 	}
 	defer dbpool.Close()
 
-	healthHandler := handler.HealthHandler{
-		DB: dbpool,
-	}
+	healthHandler := handler.New(dbpool)
 
 	router.GET("/ping", healthHandler.Check)
 	router.Run()

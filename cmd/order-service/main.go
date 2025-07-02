@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mlucas4330/orderflow-pro/internal/db"
 	"github.com/mlucas4330/orderflow-pro/internal/handler"
+	"github.com/mlucas4330/orderflow-pro/internal/repository"
 )
 
 func main() {
@@ -16,12 +16,7 @@ func main() {
 
 	ctx := context.Background()
 
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:5432/%s",
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_NAME"),
-	)
+	dsn := os.Getenv("POSTGRES_DSN")
 
 	dbpool, err := db.New(ctx, dsn)
 	if err != nil {
@@ -29,8 +24,12 @@ func main() {
 	}
 	defer dbpool.Close()
 
-	healthHandler := handler.New(dbpool)
+	healthHandler := handler.NewHealthHandler(dbpool)
+	orderRepository := repository.NewOrderRepository(dbpool)
+	orderHandler := handler.NewOrderHandler(orderRepository)
 
 	router.GET("/ping", healthHandler.Check)
+	router.POST("/v1/orders", orderHandler.Create)
+
 	router.Run()
 }

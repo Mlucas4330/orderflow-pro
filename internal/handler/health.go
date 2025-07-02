@@ -12,7 +12,7 @@ type HealthHandler struct {
 	DB *pgxpool.Pool
 }
 
-func New(db *pgxpool.Pool) *HealthHandler {
+func NewHealthHandler(db *pgxpool.Pool) *HealthHandler {
 	return &HealthHandler{DB: db}
 }
 

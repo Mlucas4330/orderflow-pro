@@ -29,7 +29,17 @@ func main() {
 	orderHandler := handler.NewOrderHandler(orderRepository)
 
 	router.GET("/ping", healthHandler.Check)
-	router.POST("/v1/orders", orderHandler.Create)
+	apiV1 := router.Group("/api/v1")
+	{
+		orders := apiV1.Group("/orders")
+		{
+			orders.POST("/", orderHandler.Create)
+			orders.GET("/", orderHandler.Create)
+			orders.GET("/:id", orderHandler.Create)
+			orders.DELETE("/:id", orderHandler.Create)
+			orders.PUT("/:id", orderHandler.Create)
+		}
+	}
 
 	router.Run()
 }

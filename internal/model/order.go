@@ -24,6 +24,7 @@ type Order struct {
 	Status     Status          `db:"status"`
 	Total      decimal.Decimal `db:"total"`
 	Currency   string          `db:"currency"`
+	OrderItems []OrderItem     `db:"-"`
 	CreatedAt  time.Time       `db:"created_at"`
 	UpdatedAt  time.Time       `db:"updated_at"`
 }

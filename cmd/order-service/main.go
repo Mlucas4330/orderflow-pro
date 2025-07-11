@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"log"
-	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mlucas4330/orderflow-pro/internal/cache"
-	"github.com/mlucas4330/orderflow-pro/internal/db"
+	"github.com/mlucas4330/orderflow-pro/internal/config"
 	"github.com/mlucas4330/orderflow-pro/internal/handler"
 	"github.com/mlucas4330/orderflow-pro/internal/repository"
 )
@@ -17,16 +17,15 @@ func main() {
 
 	ctx := context.Background()
 
-	dsn := os.Getenv("POSTGRES_DSN")
-	redisAddr := os.Getenv("REDIS_ADDR")
+	cfg := config.LoadConfig()
 
-	dbpool, err := db.New(ctx, dsn)
+	dbpool, err := pgxpool.New(ctx, cfg.PostgresDSN)
 	if err != nil {
 		log.Fatalf("Falha ao conectar com o banco de dados: %v", err)
 	}
 	defer dbpool.Close()
 
-	redisClient, err := cache.NewRedisClient(ctx, redisAddr)
+	redisClient, err := cache.NewRedisClient(ctx, cfg.RedisAddr, cfg.RedisDB)
 	if err != nil {
 		log.Fatalf("Falha ao conectar com o redis: %v", err)
 	}

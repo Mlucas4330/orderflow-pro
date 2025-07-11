@@ -8,11 +8,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mlucas4330/orderflow-pro/internal/model"
+	"github.com/redis/go-redis/v9"
 )
 
 type OrderRepository interface {

@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
+	pgx "github.com/jackc/pgx/v5"
 	"github.com/mlucas4330/orderflow-pro/internal/dto"
 	"github.com/mlucas4330/orderflow-pro/internal/model"
 	"github.com/mlucas4330/orderflow-pro/internal/repository"

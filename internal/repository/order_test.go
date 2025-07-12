@@ -12,7 +12,7 @@ import (
 	"github.com/mlucas4330/orderflow-pro/internal/cache"
 	"github.com/mlucas4330/orderflow-pro/internal/config"
 	"github.com/mlucas4330/orderflow-pro/internal/model"
-	"github.com/redis/go-redis/v9"
+	redis "github.com/redis/go-redis/v9"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 )

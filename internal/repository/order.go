@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mlucas4330/orderflow-pro/internal/model"
-	"github.com/redis/go-redis/v9"
+	redis "github.com/redis/go-redis/v9"
 )
 
 type OrderRepository interface {

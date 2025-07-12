@@ -204,7 +204,14 @@ func (r *PostgresOrderRepository) CreateOrder(ctx context.Context, order *model.
 	if err != nil {
 		return fmt.Errorf("erro ao iniciar transação: %w", err)
 	}
-	defer tx.Rollback(ctx)
+
+	defer func() {
+		if err != nil {
+			if rbErr := tx.Rollback(ctx); rbErr != nil {
+				log.Printf("erro ao fazer rollback: %v", rbErr)
+			}
+		}
+	}()
 
 	orderQuery := `
 		INSERT INTO orders (id, customer_id, status, total, currency, created_at, updated_at) 

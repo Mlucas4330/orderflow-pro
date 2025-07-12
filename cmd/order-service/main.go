@@ -48,5 +48,8 @@ func main() {
 		}
 	}
 
-	router.Run()
+	err = router.Run()
+	if err != nil {
+		log.Fatalf("erro ao iniciar servidor: %v", err)
+	}
 }

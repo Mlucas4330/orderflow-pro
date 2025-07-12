@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/redis/go-redis/v9"
+	redis "github.com/redis/go-redis/v9"
 )
 
 func NewRedisClient(ctx context.Context, redisAddr string, redisDB int) (*redis.Client, error) {

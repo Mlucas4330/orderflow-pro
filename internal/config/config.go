@@ -8,7 +8,6 @@ import (
 
 type Config struct {
 	PostgresDSN     string `env:"POSTGRES_DSN,required"`
-	TestPostgresDSN string `env:"TEST_POSTGRES_DSN,required"`
 	RedisAddr       string `env:"REDIS_ADDR,required"`
 	RedisDB         int    `env:"REDIS_DB,required"`
 }

@@ -24,7 +24,7 @@ func setupTest(t *testing.T) (*PostgresOrderRepository, *pgxpool.Pool, *redis.Cl
 
 	ctx := context.Background()
 
-	dbpool, err := pgxpool.New(ctx, cfg.TestPostgresDSN)
+	dbpool, err := pgxpool.New(ctx, cfg.PostgresDSN)
 	require.NoError(t, err, "Falha ao conectar ao banco de dados de teste")
 
 	redisClient, err := cache.NewRedisClient(ctx, cfg.RedisAddr, cfg.RedisDB)

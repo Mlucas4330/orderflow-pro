@@ -44,7 +44,7 @@ func main() {
 			orders.GET("/", orderHandler.GetOrders)
 			orders.GET("/:id", orderHandler.GetOrderById)
 			orders.DELETE("/:id", orderHandler.DeleteOrder)
-			orders.PUT("/:id", orderHandler.UpdateOrder)
+			orders.PATCH("/:id", orderHandler.UpdateOrder)
 		}
 	}
 

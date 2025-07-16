@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -16,17 +17,18 @@ import (
 )
 
 type OrderHandler struct {
-	Repo repository.OrderRepository
+	OrderRepo       repository.OrderRepository
+	IdempotencyRepo repository.IdempotencyRepository
 }
 
-func NewOrderHandler(repo repository.OrderRepository) *OrderHandler {
-	return &OrderHandler{Repo: repo}
+func NewOrderHandler(orderRepo repository.OrderRepository, idempotencyRepo repository.IdempotencyRepository) *OrderHandler {
+	return &OrderHandler{OrderRepo: orderRepo, IdempotencyRepo: idempotencyRepo}
 }
 
 func (h *OrderHandler) GetOrders(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	orders, err := h.Repo.FindOrders(ctx)
+	orders, err := h.OrderRepo.FindOrders(ctx)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "pedidos não encontrados"})
@@ -52,7 +54,7 @@ func (h *OrderHandler) GetOrderById(c *gin.Context) {
 		return
 	}
 
-	order, err := h.Repo.FindOrderById(ctx, id)
+	order, err := h.OrderRepo.FindOrderById(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "pedido não encontrado"})
@@ -68,6 +70,21 @@ func (h *OrderHandler) GetOrderById(c *gin.Context) {
 }
 
 func (h *OrderHandler) CreateOrder(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	idempotencyKeyStr := c.GetHeader("Idempotency-Key")
+	idempotencyKey, err := uuid.Parse(idempotencyKeyStr)
+
+	if err == nil {
+		mockCustomerID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+
+		if savedResponse, err := h.IdempotencyRepo.GetResponse(ctx, idempotencyKey, mockCustomerID); err == nil && savedResponse != nil {
+			log.Printf("HIT de idempotência para a chave: %s", idempotencyKeyStr)
+			c.Data(savedResponse.StatusCode, "application/json; charset=utf-8", savedResponse.Body)
+			return
+		}
+	}
+
 	var req dto.CreateOrderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "corpo da requisição inválido: " + err.Error()})
@@ -75,9 +92,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	}
 
 	orderID := uuid.New()
-
 	var orderItems []model.OrderItem
-
 	total := decimal.NewFromInt(0)
 
 	for _, itemDTO := range req.Items {
@@ -90,7 +105,6 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			Quantity:    itemDTO.Quantity,
 			PriceAtTime: priceAtTime,
 		}
-
 		orderItems = append(orderItems, orderItem)
 
 		itemTotal := priceAtTime.Mul(decimal.NewFromInt(int64(itemDTO.Quantity)))
@@ -103,16 +117,27 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		Status:     model.StatusPending,
 		Total:      total,
 		Currency:   "BRL",
-		CreatedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
+		CreatedAt:  time.Now().UTC(),
+		UpdatedAt:  time.Now().UTC(),
+		OrderItems: orderItems,
 	}
 
-	ctx := c.Request.Context()
-	err := h.Repo.CreateOrder(ctx, order, orderItems)
-	if err != nil {
+	if err := h.OrderRepo.CreateOrder(ctx, order, orderItems); err != nil {
 		log.Printf("Erro ao criar pedido no repositório: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno ao processar o pedido"})
 		return
+	}
+
+	if idempotencyKey != uuid.Nil {
+		responseBody, _ := json.Marshal(order)
+		responseToSave := &model.IdempotencyResponse{
+			StatusCode: http.StatusCreated,
+			Body:       responseBody,
+		}
+
+		if err := h.IdempotencyRepo.SaveResponse(ctx, idempotencyKey, req.CustomerID, responseToSave); err != nil {
+			log.Printf("AVISO CRÍTICO: Falha ao salvar a resposta de idempotência: %v", err)
+		}
 	}
 
 	c.JSON(http.StatusCreated, order)
@@ -133,7 +158,7 @@ func (h *OrderHandler) UpdateOrder(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	err = h.Repo.UpdateOrder(ctx, id, req.Status)
+	err = h.OrderRepo.UpdateOrder(ctx, id, req.Status)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -157,7 +182,7 @@ func (h *OrderHandler) DeleteOrder(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	err = h.Repo.DeleteOrder(ctx, id)
+	err = h.OrderRepo.DeleteOrder(ctx, id)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

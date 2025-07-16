@@ -19,12 +19,12 @@ CREATE TABLE
     created_at TIMESTAMP
     WITH
       TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP
+      updated_at TIMESTAMP
     WITH
       TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
--- +goose StatementEnd
 
+-- +goose StatementEnd
 -- +goose Down
 -- +goose StatementBegin
 DROP TABLE orders;

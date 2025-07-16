@@ -33,7 +33,8 @@ func main() {
 
 	healthHandler := handler.NewHealthHandler(dbpool)
 	orderRepository := repository.NewOrderRepository(dbpool, redisClient)
-	orderHandler := handler.NewOrderHandler(orderRepository)
+	idempotencyRepository := repository.NewIdempotencyRepository(dbpool)
+	orderHandler := handler.NewOrderHandler(orderRepository, idempotencyRepository)
 
 	router.GET("/ping", healthHandler.Check)
 	apiV1 := router.Group("/api/v1")

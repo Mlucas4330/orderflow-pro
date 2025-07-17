@@ -9,6 +9,7 @@ import (
 	"github.com/mlucas4330/orderflow-pro/internal/cache"
 	"github.com/mlucas4330/orderflow-pro/internal/config"
 	"github.com/mlucas4330/orderflow-pro/internal/handler"
+	"github.com/mlucas4330/orderflow-pro/internal/middleware"
 	"github.com/mlucas4330/orderflow-pro/internal/repository"
 )
 
@@ -41,7 +42,7 @@ func main() {
 	{
 		orders := apiV1.Group("/orders")
 		{
-			orders.POST("/", orderHandler.CreateOrder)
+			orders.POST("/", middleware.AuthMiddleware(), orderHandler.CreateOrder)
 			orders.GET("/", orderHandler.GetOrders)
 			orders.GET("/:id", orderHandler.GetOrderById)
 			orders.DELETE("/:id", orderHandler.DeleteOrder)

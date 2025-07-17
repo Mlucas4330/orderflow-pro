@@ -1,4 +1,4 @@
-name: Go CI
+name: Go CI/CD Pipeline
 
 on:
   push:
@@ -7,16 +7,17 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpassword
-          POSTGRES_DB: testdb
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
         ports:
           - 5432:5432
         options: >-
@@ -24,6 +25,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
       redis:
         image: redis:7-alpine
         ports:
@@ -33,6 +35,12 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
+    env:
+      POSTGRES_DSN: postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}?sslmode=disable
+      REDIS_ADDR: ${{ secrets.REDIS_ADDR }}
+      REDIS_DB: ${{ secrets.REDIS_DB }}
+
     steps:
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -46,9 +54,7 @@ jobs:
         run: go install github.com/pressly/goose/v3/cmd/goose@latest
 
       - name: Run DB migrations
-        run: goose -dir "db/migrations" postgres "${{ env.POSTGRES_DSN }}" up
-        env:
-          POSTGRES_DSN: "postgres://testuser:testpassword@localhost:5432/testdb?sslmode=disable"
+        run: goose -dir "db/migrations" postgres "$POSTGRES_DSN" up
 
       - name: Run Linter
         uses: golangci/golangci-lint-action@v6
@@ -57,7 +63,3 @@ jobs:
 
       - name: Run Integration Tests
         run: go test -v ./...
-        env:
-          POSTGRES_DSN: "postgres://testuser:testpassword@localhost:5432/testdb?sslmode=disable"
-          REDIS_ADDR: localhost:6379
-          REDIS_DB: 1

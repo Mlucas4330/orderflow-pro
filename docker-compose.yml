@@ -9,6 +9,7 @@ services:
     environment:
       - POSTGRES_DSN=${POSTGRES_DSN}
       - REDIS_ADDR=${REDIS_ADDR}
+      - REDIS_DB=${REDIS_DB}
   db:
     image: postgres:16-alpine
     restart: always

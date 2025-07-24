@@ -11,6 +11,8 @@ import (
 	"github.com/google/uuid"
 	pgx "github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/mlucas4330/orderflow-pro/internal/events"
+	"github.com/mlucas4330/orderflow-pro/internal/messaging"
 	"github.com/mlucas4330/orderflow-pro/internal/model"
 	redis "github.com/redis/go-redis/v9"
 )
@@ -24,14 +26,16 @@ type OrderRepository interface {
 }
 
 type PostgresOrderRepository struct {
-	DB    *pgxpool.Pool
-	Redis *redis.Client
+	DB            *pgxpool.Pool
+	Redis         *redis.Client
+	KafkaProducer *messaging.KafkaProducer
 }
 
-func NewOrderRepository(pgpool *pgxpool.Pool, redis *redis.Client) *PostgresOrderRepository {
+func NewOrderRepository(pgpool *pgxpool.Pool, redis *redis.Client, producer *messaging.KafkaProducer) *PostgresOrderRepository {
 	return &PostgresOrderRepository{
-		DB:    pgpool,
-		Redis: redis,
+		DB:            pgpool,
+		Redis:         redis,
+		KafkaProducer: producer,
 	}
 }
 
@@ -234,7 +238,27 @@ func (r *PostgresOrderRepository) CreateOrder(ctx context.Context, order *model.
 		return fmt.Errorf("erro ao fazer bulk insert na tabela order_items: %w", err)
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	eventItems := make([]events.OrderItemCreated, len(orderItems))
+	for i, item := range orderItems {
+		eventItems[i] = events.OrderItemCreated{
+			ProductID: item.ProductID,
+			Quantity:  item.Quantity,
+		}
+	}
+	event := events.OrderCreatedEvent{
+		OrderID:    order.ID,
+		CustomerID: order.CustomerID,
+		Total:      order.Total,
+		Items:      eventItems,
+	}
+
+	go r.KafkaProducer.PublishOrderCreated(context.Background(), event)
+
+	return nil
 }
 
 func (r *PostgresOrderRepository) UpdateOrder(ctx context.Context, id uuid.UUID, status model.Status) error {

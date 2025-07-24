@@ -9,6 +9,7 @@ import (
 	"github.com/mlucas4330/orderflow-pro/internal/cache"
 	"github.com/mlucas4330/orderflow-pro/internal/config"
 	"github.com/mlucas4330/orderflow-pro/internal/handler"
+	"github.com/mlucas4330/orderflow-pro/internal/messaging"
 	"github.com/mlucas4330/orderflow-pro/internal/middleware"
 	"github.com/mlucas4330/orderflow-pro/internal/repository"
 )
@@ -33,7 +34,10 @@ func main() {
 	defer redisClient.Close()
 
 	healthHandler := handler.NewHealthHandler(dbpool)
-	orderRepository := repository.NewOrderRepository(dbpool, redisClient)
+	kafkaProducer := messaging.NewKafkaProducer(cfg.KafkaBrokers)
+	defer kafkaProducer.Close()
+
+	orderRepository := repository.NewOrderRepository(dbpool, redisClient, kafkaProducer)
 	idempotencyRepository := repository.NewIdempotencyRepository(dbpool)
 	orderHandler := handler.NewOrderHandler(orderRepository, idempotencyRepository)
 

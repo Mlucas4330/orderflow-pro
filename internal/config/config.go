@@ -7,9 +7,10 @@ import (
 )
 
 type Config struct {
-	PostgresDSN     string `env:"POSTGRES_DSN,required"`
-	RedisAddr       string `env:"REDIS_ADDR,required"`
-	RedisDB         int    `env:"REDIS_DB,required"`
+	PostgresDSN  string `env:"POSTGRES_DSN,required"`
+	RedisAddr    string `env:"REDIS_ADDR,required"`
+	RedisDB      int    `env:"REDIS_DB,required"`
+	KafkaBrokers string `end:"KAFKA_BROKERS,required"`
 }
 
 func LoadConfig() *Config {

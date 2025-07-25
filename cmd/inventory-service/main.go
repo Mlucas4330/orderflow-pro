@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"log"
 	"strings"
+	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mlucas4330/orderflow-pro/internal/config"
 	"github.com/mlucas4330/orderflow-pro/internal/events"
+	"github.com/mlucas4330/orderflow-pro/internal/repository"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -15,14 +18,18 @@ func main() {
 	ctx := context.Background()
 
 	cfg := config.LoadConfig()
-	
+
+	dbpool, err := pgxpool.New(ctx, cfg.PostgresDSN)
+	if err != nil {
+		log.Fatalf("Falha ao conectar com o banco de dados: %v", err)
+	}
+
+	inventoryRepo := repository.NewInventoryRepository(dbpool)
+
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:        strings.Split(cfg.KafkaBrokers, ","),
-		Topic:          "orders",
-		GroupID:        "inventory-service",
-		MinBytes:       10e3, // 10KB
-		MaxBytes:       10e6, // 10MB
-		CommitInterval: 0,
+		Brokers: strings.Split(cfg.KafkaBrokers, ","),
+		Topic:   "orders",
+		GroupID: "inventory-service",
 	})
 	defer reader.Close()
 
@@ -41,9 +48,37 @@ func main() {
 			continue
 		}
 
-		log.Printf("Evento OrderCreated recebido! Pedido ID: %s. A dar baixa no stock...", event.OrderID)
+		for _, item := range event.Items {
+			const maxAttempts = 3
+			var err error
 
-		if err := reader.CommitMessages(context.Background(), msg); err != nil {
+			for attempt := 1; attempt <= maxAttempts; attempt++ {
+				log.Printf("Tentativa %d de atualizar estoque para o produto %s: -%d", attempt, item.ProductID, item.Quantity)
+
+				err = inventoryRepo.DecrementStock(ctx, item.ProductID, item.Quantity)
+
+				if err == nil {
+					log.Printf("Estoque para o produto %s atualizado com sucesso.", item.ProductID)
+					break
+				}
+
+				log.Printf("AVISO: Falha na tentativa %d para o produto %s: %v", attempt, item.ProductID, err)
+
+				if attempt < maxAttempts {
+					time.Sleep(time.Duration(attempt) * time.Second)
+				}
+			}
+
+			if err != nil {
+				log.Printf("ERRO FINAL: Todas as %d tentativas falharam para o produto %s. Erro: %v", maxAttempts, item.ProductID, err)
+			}
+		}
+
+		if err := reader.CommitMessages(ctx, msg); err != nil {
+			log.Printf("Erro ao fazer commit da mensagem: %v", err)
+		}
+
+		if err := reader.CommitMessages(ctx, msg); err != nil {
 			log.Printf("Erro ao fazer commit da mensagem: %v", err)
 		}
 	}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/mlucas4330/orderflow-pro/internal/cache"
 	"github.com/mlucas4330/orderflow-pro/internal/config"
+	"github.com/mlucas4330/orderflow-pro/internal/messaging"
 	"github.com/mlucas4330/orderflow-pro/internal/model"
 	redis "github.com/redis/go-redis/v9"
 	"github.com/shopspring/decimal"
@@ -30,7 +31,10 @@ func setupTest(t *testing.T) (*PostgresOrderRepository, *pgxpool.Pool, *redis.Cl
 	redisClient, err := cache.NewRedisClient(ctx, cfg.RedisAddr, cfg.RedisDB)
 	require.NoError(t, err, "Falha ao conectar ao Redis de teste")
 
-	repo := NewOrderRepository(dbpool, redisClient)
+	kafkaProducer := messaging.NewKafkaProducer(cfg.KafkaBrokers)
+	defer kafkaProducer.Close()
+
+	repo := NewOrderRepository(dbpool, redisClient, kafkaProducer)
 
 	return repo, dbpool, redisClient
 }

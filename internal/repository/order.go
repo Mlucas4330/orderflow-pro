@@ -26,16 +26,18 @@ type OrderRepository interface {
 }
 
 type PostgresOrderRepository struct {
-	DB            *pgxpool.Pool
-	Redis         *redis.Client
-	KafkaProducer *messaging.KafkaProducer
+	DB               *pgxpool.Pool
+	Redis            *redis.Client
+	KafkaProducer    *messaging.KafkaProducer
+	RabbitMQProducer *messaging.RabbitMQProducer
 }
 
-func NewOrderRepository(pgpool *pgxpool.Pool, redis *redis.Client, producer *messaging.KafkaProducer) *PostgresOrderRepository {
+func NewOrderRepository(pgpool *pgxpool.Pool, redis *redis.Client, kafkaProducer *messaging.KafkaProducer, rabbitProducer *messaging.RabbitMQProducer) *PostgresOrderRepository {
 	return &PostgresOrderRepository{
-		DB:            pgpool,
-		Redis:         redis,
-		KafkaProducer: producer,
+		DB:               pgpool,
+		Redis:            redis,
+		KafkaProducer:    kafkaProducer,
+		RabbitMQProducer: rabbitProducer,
 	}
 }
 

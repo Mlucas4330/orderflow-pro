@@ -19,7 +19,7 @@ func main() {
 
 	ctx := context.Background()
 
-	cfg := config.LoadConfig()
+	cfg := config.LoadOrderConfig()
 
 	dbpool, err := pgxpool.New(ctx, cfg.PostgresDSN)
 	if err != nil {
@@ -33,12 +33,15 @@ func main() {
 	}
 	defer redisClient.Close()
 
-	healthHandler := handler.NewHealthHandler(dbpool)
 	kafkaProducer := messaging.NewKafkaProducer(cfg.KafkaBrokers)
 	defer kafkaProducer.Close()
 
-	orderRepository := repository.NewOrderRepository(dbpool, redisClient, kafkaProducer)
+	rabbitProducer := messaging.NewRabbitMQProducer(cfg.RabbitURL)
+	defer rabbitProducer.Close()
+
+	orderRepository := repository.NewOrderRepository(dbpool, redisClient, kafkaProducer, rabbitProducer)
 	idempotencyRepository := repository.NewIdempotencyRepository(dbpool)
+	healthHandler := handler.NewHealthHandler(dbpool)
 	orderHandler := handler.NewOrderHandler(orderRepository, idempotencyRepository)
 
 	router.GET("/ping", healthHandler.Check)

@@ -17,7 +17,7 @@ import (
 func main() {
 	ctx := context.Background()
 
-	cfg := config.LoadConfig()
+	cfg := config.LoadInventoryConfig()
 
 	dbpool, err := pgxpool.New(ctx, cfg.PostgresDSN)
 	if err != nil {

@@ -6,14 +6,20 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - db
-      - redis
-      - kafka
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
-      - POSTGRES_DSN=${POSTGRES_DSN}
-      - REDIS_ADDR=${REDIS_ADDR}
-      - REDIS_DB=${REDIS_DB}
-      - KAFKA_BROKERS=${KAFKA_BROKERS}
+      POSTGRES_DSN: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable"
+      REDIS_ADDR: "redis:6379"
+      REDIS_DB: 0
+      KAFKA_BROKERS: "kafka:9092"
+      RABBITMQ_URL: "amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672/"
     restart: on-failure
 
   inventory-service:
@@ -21,18 +27,22 @@ services:
       context: .
       dockerfile: cmd/inventory-service/Dockerfile
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
+      db:
+        condition: service_healthy
     environment:
-      - KAFKA_BROKERS=${KAFKA_BROKERS}
+      POSTGRES_DSN: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable"
+      KAFKA_BROKERS: "kafka:9092"
     restart: on-failure
 
   db:
     image: postgres:16-alpine
     restart: always
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
@@ -52,11 +62,14 @@ services:
     volumes:
       - redis-data:/data
     command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.2
-    hostname: zookeeper
-    container_name: zookeeper
     ports:
       - "2181:2181"
     environment:
@@ -65,8 +78,6 @@ services:
 
   kafka:
     image: confluentinc/cp-kafka:7.3.2
-    hostname: kafka
-    container_name: kafka
     depends_on:
       - zookeeper
     ports:
@@ -74,19 +85,52 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CONFLUENT_SUPPORT_METRICS_ENABLE: "false"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "cub",
+          "kafka",
+          "broker",
+          "list",
+          "--bootstrap-server",
+          "kafka:9092",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redpanda-console:
     image: docker.redpanda.com/redpandadata/console:v2.4.6
-    container_name: redpanda-console
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     ports:
       - "8081:8080"
     environment:
       KAFKA_BROKERS: "kafka:9092"
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   db-data:

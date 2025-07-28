@@ -21,7 +21,7 @@ import (
 func setupTest(t *testing.T) (*PostgresOrderRepository, *pgxpool.Pool, *redis.Client) {
 	_ = env.Load("../../.env.test")
 
-	cfg := config.LoadConfig()
+	cfg := config.LoadOrderConfig()
 
 	ctx := context.Background()
 
@@ -34,7 +34,10 @@ func setupTest(t *testing.T) (*PostgresOrderRepository, *pgxpool.Pool, *redis.Cl
 	kafkaProducer := messaging.NewKafkaProducer(cfg.KafkaBrokers)
 	defer kafkaProducer.Close()
 
-	repo := NewOrderRepository(dbpool, redisClient, kafkaProducer)
+	rabbitProducer := messaging.NewRabbitMQProducer(cfg.RabbitURL)
+	defer rabbitProducer.Close()
+
+	repo := NewOrderRepository(dbpool, redisClient, kafkaProducer, rabbitProducer)
 
 	return repo, dbpool, redisClient
 }

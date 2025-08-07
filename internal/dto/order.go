@@ -2,7 +2,7 @@ package dto
 
 import (
 	"github.com/google/uuid"
-	"github.com/mlucas4330/orderflow-pro/internal/model"
+	"github.com/mlucas4330/orderflow-pro/pkg/model"
 )
 
 type CreateOrderRequest struct {

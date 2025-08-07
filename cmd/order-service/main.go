@@ -9,9 +9,12 @@ import (
 	"github.com/mlucas4330/orderflow-pro/internal/cache"
 	"github.com/mlucas4330/orderflow-pro/internal/config"
 	"github.com/mlucas4330/orderflow-pro/internal/handler"
-	"github.com/mlucas4330/orderflow-pro/internal/messaging"
+	"github.com/mlucas4330/orderflow-pro/internal/messaging/producer"
 	"github.com/mlucas4330/orderflow-pro/internal/middleware"
 	"github.com/mlucas4330/orderflow-pro/internal/repository"
+	pb "github.com/mlucas4330/orderflow-pro/pkg/productpb"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -33,27 +36,36 @@ func main() {
 	}
 	defer redisClient.Close()
 
-	kafkaProducer := messaging.NewKafkaProducer(cfg.KafkaBrokers)
+	kafkaProducer := producer.NewKafkaProducer(cfg.KafkaBrokers)
 	defer kafkaProducer.Close()
 
-	rabbitProducer := messaging.NewRabbitMQProducer(cfg.RabbitURL)
+	rabbitProducer := producer.NewRabbitMQProducer(cfg.RabbitURL)
 	defer rabbitProducer.Close()
+
+	grpcconn, err := grpc.NewClient(cfg.ProductServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Falha ao conectar com o product-service via gRPC: %v", err)
+	}
+	defer grpcconn.Close()
 
 	orderRepository := repository.NewOrderRepository(dbpool, redisClient, kafkaProducer, rabbitProducer)
 	idempotencyRepository := repository.NewIdempotencyRepository(dbpool)
 	healthHandler := handler.NewHealthHandler(dbpool)
-	orderHandler := handler.NewOrderHandler(orderRepository, idempotencyRepository)
+	productClient := pb.NewProductServiceClient(grpcconn)
+	orderHandler := handler.NewOrderHandler(orderRepository, idempotencyRepository, productClient)
+
+	authMiddleware := middleware.NewAuthMiddleware(cfg.JWTSecretKey)
 
 	router.GET("/ping", healthHandler.Check)
 	apiV1 := router.Group("/api/v1")
 	{
 		orders := apiV1.Group("/orders")
 		{
-			orders.POST("/", middleware.AuthMiddleware(), orderHandler.CreateOrder)
-			orders.GET("/", orderHandler.GetOrders)
-			orders.GET("/:id", orderHandler.GetOrderById)
-			orders.DELETE("/:id", orderHandler.DeleteOrder)
-			orders.PATCH("/:id", orderHandler.UpdateOrder)
+			orders.POST("/", authMiddleware, orderHandler.CreateOrder)
+			orders.GET("/", authMiddleware, orderHandler.GetOrders)
+			orders.GET("/:id", authMiddleware, orderHandler.GetOrderById)
+			orders.DELETE("/:id", authMiddleware, orderHandler.DeleteOrder)
+			orders.PATCH("/:id", authMiddleware, orderHandler.UpdateOrder)
 		}
 	}
 

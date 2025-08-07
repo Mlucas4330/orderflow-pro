@@ -1,4 +1,4 @@
-package messaging
+package producer
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/mlucas4330/orderflow-pro/internal/events"
-	"github.com/segmentio/kafka-go"
+	kafka "github.com/segmentio/kafka-go"
 )
 
 type KafkaProducer struct {

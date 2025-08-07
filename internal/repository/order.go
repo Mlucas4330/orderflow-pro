@@ -12,8 +12,8 @@ import (
 	pgx "github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mlucas4330/orderflow-pro/internal/events"
-	"github.com/mlucas4330/orderflow-pro/internal/messaging"
-	"github.com/mlucas4330/orderflow-pro/internal/model"
+	"github.com/mlucas4330/orderflow-pro/internal/messaging/producer"
+	"github.com/mlucas4330/orderflow-pro/pkg/model"
 	redis "github.com/redis/go-redis/v9"
 )
 
@@ -28,11 +28,11 @@ type OrderRepository interface {
 type PostgresOrderRepository struct {
 	DB               *pgxpool.Pool
 	Redis            *redis.Client
-	KafkaProducer    *messaging.KafkaProducer
-	RabbitMQProducer *messaging.RabbitMQProducer
+	KafkaProducer    *producer.KafkaProducer
+	RabbitMQProducer *producer.RabbitMQProducer
 }
 
-func NewOrderRepository(pgpool *pgxpool.Pool, redis *redis.Client, kafkaProducer *messaging.KafkaProducer, rabbitProducer *messaging.RabbitMQProducer) *PostgresOrderRepository {
+func NewOrderRepository(pgpool *pgxpool.Pool, redis *redis.Client, kafkaProducer *producer.KafkaProducer, rabbitProducer *producer.RabbitMQProducer) *PostgresOrderRepository {
 	return &PostgresOrderRepository{
 		DB:               pgpool,
 		Redis:            redis,
@@ -210,14 +210,7 @@ func (r *PostgresOrderRepository) CreateOrder(ctx context.Context, order *model.
 	if err != nil {
 		return fmt.Errorf("erro ao iniciar transação: %w", err)
 	}
-
-	defer func() {
-		if err != nil {
-			if rbErr := tx.Rollback(ctx); rbErr != nil {
-				log.Printf("erro ao fazer rollback: %v", rbErr)
-			}
-		}
-	}()
+	defer tx.Rollback(ctx)
 
 	orderQuery := `
 		INSERT INTO orders (id, customer_id, status, total, currency, created_at, updated_at) 
@@ -229,7 +222,6 @@ func (r *PostgresOrderRepository) CreateOrder(ctx context.Context, order *model.
 	}
 
 	itemQuery := []string{"id", "order_id", "product_id", "quantity", "price_at_time"}
-
 	rows := make([][]any, len(orderItems))
 	for i, orderItem := range orderItems {
 		rows[i] = []any{orderItem.ID, orderItem.OrderID, orderItem.ProductID, orderItem.Quantity, orderItem.PriceAtTime}
@@ -238,10 +230,6 @@ func (r *PostgresOrderRepository) CreateOrder(ctx context.Context, order *model.
 	_, err = tx.CopyFrom(ctx, pgx.Identifier{"order_items"}, itemQuery, pgx.CopyFromRows(rows))
 	if err != nil {
 		return fmt.Errorf("erro ao fazer bulk insert na tabela order_items: %w", err)
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return err
 	}
 
 	eventItems := make([]events.OrderItemCreated, len(orderItems))
@@ -258,7 +246,16 @@ func (r *PostgresOrderRepository) CreateOrder(ctx context.Context, order *model.
 		Items:      eventItems,
 	}
 
-	go r.KafkaProducer.PublishOrderCreated(context.Background(), event)
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("erro ao comitar transação: %w", err)
+	}
+
+	go func() {
+		err := r.KafkaProducer.PublishOrderCreated(context.Background(), event)
+		if err != nil {
+			log.Printf("ERRO ao publicar evento OrderCreated no Kafka: %v", err)
+		}
+	}()
 
 	return nil
 }

@@ -11,18 +11,21 @@ import (
 	"github.com/google/uuid"
 	pgx "github.com/jackc/pgx/v5"
 	"github.com/mlucas4330/orderflow-pro/internal/dto"
-	"github.com/mlucas4330/orderflow-pro/internal/model"
 	"github.com/mlucas4330/orderflow-pro/internal/repository"
+	"github.com/mlucas4330/orderflow-pro/pkg/model"
+	pb "github.com/mlucas4330/orderflow-pro/pkg/productpb"
+
 	"github.com/shopspring/decimal"
 )
 
 type OrderHandler struct {
 	OrderRepo       repository.OrderRepository
 	IdempotencyRepo repository.IdempotencyRepository
+	ProductClient   pb.ProductServiceClient
 }
 
-func NewOrderHandler(orderRepo repository.OrderRepository, idempotencyRepo repository.IdempotencyRepository) *OrderHandler {
-	return &OrderHandler{OrderRepo: orderRepo, IdempotencyRepo: idempotencyRepo}
+func NewOrderHandler(orderRepo repository.OrderRepository, idempotencyRepo repository.IdempotencyRepository, productClient pb.ProductServiceClient) *OrderHandler {
+	return &OrderHandler{OrderRepo: orderRepo, IdempotencyRepo: idempotencyRepo, ProductClient: productClient}
 }
 
 func (h *OrderHandler) GetOrders(c *gin.Context) {
@@ -96,7 +99,19 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	total := decimal.NewFromInt(0)
 
 	for _, itemDTO := range req.Items {
-		priceAtTime := decimal.NewFromFloat(19.99)
+		log.Printf("Buscando detalhes do produto %s via gRPC...", itemDTO.ProductID)
+		productDetails, err := h.ProductClient.GetProductDetails(ctx, &pb.GetProductDetailsRequest{
+			ProductId: itemDTO.ProductID.String(),
+		})
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "produto inválido: " + itemDTO.ProductID.String()})
+			return
+		}
+		priceAtTime, err := decimal.NewFromString(productDetails.GetPrice())
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "preço inválido retornado pelo serviço de produto"})
+			return
+		}
 
 		orderItem := model.OrderItem{
 			ID:          uuid.New(),
@@ -158,7 +173,7 @@ func (h *OrderHandler) UpdateOrder(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	err = h.OrderRepo.UpdateOrder(ctx, id, req.Status)
+	err = h.OrderRepo.UpdateOrder(ctx, id, model.Status(req.Status))
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	pgx "github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/mlucas4330/orderflow-pro/internal/model"
+	"github.com/mlucas4330/orderflow-pro/pkg/model"
 )
 
 type IdempotencyRepository interface {

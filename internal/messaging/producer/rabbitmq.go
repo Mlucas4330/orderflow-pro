@@ -1,20 +1,20 @@
-package messaging
+package producer
 
 import (
 	"context"
 	"fmt"
 	"log"
 
-	"github.com/rabbitmq/amqp091-go"
+	rabbitmq "github.com/rabbitmq/amqp091-go"
 )
 
 type RabbitMQProducer struct {
-	conn    *amqp091.Connection
-	channel *amqp091.Channel
+	conn    *rabbitmq.Connection
+	channel *rabbitmq.Channel
 }
 
 func NewRabbitMQProducer(rabbitURL string) *RabbitMQProducer {
-	conn, err := amqp091.Dial(rabbitURL)
+	conn, err := rabbitmq.Dial(rabbitURL)
 	if err != nil {
 		log.Fatalf("Falha ao conectar ao RabbitMQ: %v", err)
 	}
@@ -48,7 +48,7 @@ func (p *RabbitMQProducer) Publish(ctx context.Context, queueName string, body [
 		queueName,
 		false,
 		false,
-		amqp091.Publishing{
+		rabbitmq.Publishing{
 			ContentType: "application/json",
 			Body:        body,
 		},

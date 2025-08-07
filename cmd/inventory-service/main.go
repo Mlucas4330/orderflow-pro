@@ -11,7 +11,7 @@ import (
 	"github.com/mlucas4330/orderflow-pro/internal/config"
 	"github.com/mlucas4330/orderflow-pro/internal/events"
 	"github.com/mlucas4330/orderflow-pro/internal/repository"
-	"github.com/segmentio/kafka-go"
+	kafka "github.com/segmentio/kafka-go"
 )
 
 func main() {
@@ -27,9 +27,11 @@ func main() {
 	inventoryRepo := repository.NewInventoryRepository(dbpool)
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: strings.Split(cfg.KafkaBrokers, ","),
-		Topic:   "orders",
-		GroupID: "inventory-service",
+		Brokers:     strings.Split(cfg.KafkaBrokers, ","),
+		Topic:       "orders",
+		GroupID:     "inventory-service",
+		Logger:      kafka.LoggerFunc(log.Printf),
+		ErrorLogger: kafka.LoggerFunc(log.Printf),
 	})
 	defer reader.Close()
 
@@ -72,10 +74,6 @@ func main() {
 			if err != nil {
 				log.Printf("ERRO FINAL: Todas as %d tentativas falharam para o produto %s. Erro: %v", maxAttempts, item.ProductID, err)
 			}
-		}
-
-		if err := reader.CommitMessages(ctx, msg); err != nil {
-			log.Printf("Erro ao fazer commit da mensagem: %v", err)
 		}
 
 		if err := reader.CommitMessages(ctx, msg); err != nil {

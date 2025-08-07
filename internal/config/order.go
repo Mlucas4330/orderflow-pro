@@ -7,11 +7,13 @@ import (
 )
 
 type OrderConfig struct {
-	PostgresDSN  string `env:"POSTGRES_DSN,required"`
-	RedisAddr    string `env:"REDIS_ADDR,required"`
-	RedisDB      int    `env:"REDIS_DB,required"`
-	KafkaBrokers string `env:"KAFKA_BROKERS,required"`
-	RabbitURL    string `env:"RABBITMQ_URL,required"`
+	PostgresDSN        string `env:"POSTGRES_DSN,required"`
+	RedisAddr          string `env:"REDIS_ADDR,required"`
+	RedisDB            int    `env:"REDIS_DB,required"`
+	KafkaBrokers       string `env:"KAFKA_BROKERS,required"`
+	RabbitURL          string `env:"RABBITMQ_URL,required"`
+	ProductServiceAddr string `env:"PRODUCT_SERVICE_ADDR"`
+	JWTSecretKey       string `env:"JWT_SECRET_KEY"`
 }
 
 func LoadOrderConfig() *OrderConfig {

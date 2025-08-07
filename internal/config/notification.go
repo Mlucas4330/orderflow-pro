@@ -7,14 +7,10 @@ import (
 )
 
 type NotificationConfig struct {
-	PostgresDSN  string `env:"POSTGRES_DSN,required"`
-	RedisAddr    string `env:"REDIS_ADDR,required"`
-	RedisDB      int    `env:"REDIS_DB,required"`
-	KafkaBrokers string `env:"KAFKA_BROKERS,required"`
-	RabbitURL    string `env:"RABBITMQ_URL,required"`
+	RabbitURL string `env:"RABBITMQ_URL,required"`
 }
 
-func LoadConfig() *NotificationConfig {
+func LoadNotificationConfig() *NotificationConfig {
 	cfg := NotificationConfig{}
 	if err := env.Parse(&cfg); err != nil {
 		log.Fatalf("Não foi possível carregar a configuração: %+v", err)

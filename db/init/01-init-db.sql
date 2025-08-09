@@ -1,7 +1,4 @@
-GRANT ALL PRIVILEGES ON DATABASE postgres TO :"user";
-
-SELECT 'CREATE DATABASE orderflow_dev_db'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'orderflow_dev_db')\gexec
-
-SELECT 'CREATE DATABASE orderflow_test_db'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'orderflow_test_db')\gexec
+CREATE DATABASE orderflow_dev_db;
+CREATE DATABASE orderflow_test_db;
+GRANT ALL PRIVILEGES ON DATABASE orderflow_dev_db TO orderflow_pro;
+GRANT ALL PRIVILEGES ON DATABASE orderflow_test_db TO orderflow_pro;

@@ -12,14 +12,14 @@ type OrderConfig struct {
 	RedisDB            int    `env:"REDIS_DB,required"`
 	KafkaBrokers       string `env:"KAFKA_BROKERS,required"`
 	RabbitURL          string `env:"RABBITMQ_URL,required"`
-	ProductServiceAddr string `env:"PRODUCT_SERVICE_ADDR"`
-	JWTSecretKey       string `env:"JWT_SECRET_KEY"`
+	ProductServiceAddr string `env:"PRODUCT_SERVICE_ADDR,required"`
+	JWTSecretKey       string `env:"JWT_SECRET_KEY,required"`
 }
 
 func LoadOrderConfig() *OrderConfig {
 	cfg := OrderConfig{}
 	if err := env.Parse(&cfg); err != nil {
-		log.Fatalf("Não foi possível carregar a configuração: %+v", err)
+		log.Fatalf("Não foi possível carregar as configuração do pedido: %+v", err)
 	}
 	return &cfg
 }

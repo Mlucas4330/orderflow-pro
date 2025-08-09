@@ -1,0 +1,56 @@
+services:
+  order-service:
+    build:
+      context: .
+      dockerfile: cmd/order-service/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    environment:
+      POSTGRES_DSN: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/orderflow_dev_db?sslmode=disable"
+      REDIS_ADDR: "redis:6379"
+      REDIS_DB: 0
+      KAFKA_BROKERS: "kafka:9093"
+      RABBITMQ_URL: "amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672/"
+      PRODUCT_SERVICE_ADDR: "product-service:50051"
+    restart: on-failure
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: cmd/inventory-service/Dockerfile
+    depends_on:
+      kafka: { condition: service_healthy }
+      db: { condition: service_healthy }
+    environment:
+      POSTGRES_DSN: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/orderflow_dev_db?sslmode=disable"
+      KAFKA_BROKERS: "kafka:9093"
+    restart: on-failure
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: cmd/notification-service/Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_URL: "amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672/"
+    restart: on-failure
+
+  product-service:
+    build:
+      context: .
+      dockerfile: cmd/product-service/Dockerfile
+    restart: on-failure
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "50051:50051"
+    environment:
+      POSTGRES_DSN: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/orderflow_dev_db?sslmode=disable"

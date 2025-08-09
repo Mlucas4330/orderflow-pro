@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	env "github.com/joho/godotenv"
 
 	"github.com/mlucas4330/orderflow-pro/internal/cache"
 	"github.com/mlucas4330/orderflow-pro/internal/config"
@@ -19,8 +18,6 @@ import (
 )
 
 func setupTest(t *testing.T) (*PostgresOrderRepository, *pgxpool.Pool, *redis.Client) {
-	_ = env.Load("../../.env.test")
-
 	cfg := config.LoadOrderConfig()
 
 	ctx := context.Background()

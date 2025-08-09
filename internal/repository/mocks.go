@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/mlucas4330/orderflow-pro/internal/events"
 	"github.com/mlucas4330/orderflow-pro/pkg/model"
 	pb "github.com/mlucas4330/orderflow-pro/pkg/productpb"
 	"github.com/stretchr/testify/mock"
@@ -71,4 +72,29 @@ func (m *MockProductServiceClient) GetProductDetails(ctx context.Context, req *p
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*pb.GetProductDetailsResponse), args.Error(1)
+}
+
+type MockKafkaProducer struct {
+	mock.Mock
+}
+
+func (m *MockKafkaProducer) PublishOrderCreated(ctx context.Context, event events.OrderCreatedEvent) error {
+	args := m.Called(ctx, event)
+	return args.Error(0)
+}
+
+func (m *MockKafkaProducer) Close() error {
+	return nil
+}
+
+type MockRabbitMQProducer struct {
+	mock.Mock
+}
+
+func (m *MockRabbitMQProducer) Publish(ctx context.Context, queueName string, body []byte) error {
+	args := m.Called(ctx, queueName, body)
+	return args.Error(0)
+}
+
+func (m *MockRabbitMQProducer) Close() {
 }

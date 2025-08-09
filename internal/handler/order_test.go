@@ -41,10 +41,33 @@ func TestCreateOrderHandler(t *testing.T) {
 	mockIdemRepo := new(repository.MockIdempotencyRepository)
 	mockProductClient := new(repository.MockProductServiceClient)
 
-	mockIdemRepo.On("GetResponse", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
-	mockProductClient.On("GetProductDetails", mock.Anything, mock.Anything).Return(&pb.GetProductDetailsResponse{Price: "19.99"}, nil)
-	mockOrderRepo.On("CreateOrder", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockIdemRepo.On("SaveResponse", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	mockIdemRepo.On(
+		"GetResponse",
+		mock.AnythingOfType("context.Context"),
+		mock.AnythingOfType("uuid.UUID"),
+		mock.AnythingOfType("uuid.UUID"),
+	).Return(nil, nil)
+
+	mockProductClient.On(
+		"GetProductDetails",
+		mock.AnythingOfType("context.Context"),
+		mock.AnythingOfType("*productpb.GetProductDetailsRequest"),
+	).Return(&pb.GetProductDetailsResponse{Price: "19.99"}, nil)
+
+	mockOrderRepo.On(
+		"CreateOrder",
+		mock.AnythingOfType("context.Context"),
+		mock.AnythingOfType("*model.Order"),
+		mock.AnythingOfType("[]model.OrderItem"),
+	).Return(nil)
+
+	mockIdemRepo.On(
+		"SaveResponse",
+		mock.AnythingOfType("context.Context"),
+		mock.AnythingOfType("uuid.UUID"),
+		mock.AnythingOfType("uuid.UUID"),
+		mock.AnythingOfType("*model.IdempotencyResponse"),
+	).Return(nil)
 
 	orderHandler := handler.NewOrderHandler(mockOrderRepo, mockIdemRepo, mockProductClient)
 	authMiddleware := middleware.NewAuthMiddleware(cfg.JWTSecretKey)

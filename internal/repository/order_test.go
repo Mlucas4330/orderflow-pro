@@ -13,10 +13,11 @@ import (
 	"github.com/mlucas4330/orderflow-pro/pkg/model"
 	redis "github.com/redis/go-redis/v9"
 	"github.com/shopspring/decimal"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func setupTest(t *testing.T) (*PostgresOrderRepository, *pgxpool.Pool, *redis.Client) {
+func setupTest(t *testing.T) (*PostgresOrderRepository, *pgxpool.Pool, *redis.Client, *MockKafkaProducer, *MockRabbitMQProducer) {
 	cfg := config.LoadOrderConfig()
 
 	ctx := context.Background()
@@ -35,7 +36,7 @@ func setupTest(t *testing.T) (*PostgresOrderRepository, *pgxpool.Pool, *redis.Cl
 
 	repo := NewOrderRepository(dbpool, redisClient, mockKafkaProducer, mockRabbitProducer)
 
-	return repo, dbpool, redisClient
+	return repo, dbpool, redisClient, mockKafkaProducer, mockRabbitProducer
 }
 
 func cleanup(t *testing.T, dbpool *pgxpool.Pool, redisClient *redis.Client) {
@@ -47,7 +48,7 @@ func cleanup(t *testing.T, dbpool *pgxpool.Pool, redisClient *redis.Client) {
 }
 
 func TestCreateAndFindOrder(t *testing.T) {
-	repo, dbpool, redisClient := setupTest(t)
+	repo, dbpool, redisClient, mockKafka, mockRabbit := setupTest(t)
 	t.Cleanup(func() {
 		cleanup(t, dbpool, redisClient)
 		dbpool.Close()
@@ -78,6 +79,9 @@ func TestCreateAndFindOrder(t *testing.T) {
 			PriceAtTime: decimal.NewFromFloat(19.99),
 		},
 	}
+
+	mockKafka.On("PublishOrderCreated", mock.Anything, mock.AnythingOfType("events.OrderCreatedEvent")).Return(nil)
+	mockRabbit.On("Publish", mock.Anything, "email_notifications", mock.AnythingOfType("[]uint8")).Return(nil)
 
 	err := repo.CreateOrder(ctx, order, items)
 
@@ -94,10 +98,13 @@ func TestCreateAndFindOrder(t *testing.T) {
 
 	require.Len(t, foundOrder.OrderItems, 1, "Deveria haver 1 item no pedido")
 	require.Equal(t, items[0].ProductID, foundOrder.OrderItems[0].ProductID, "O ProductID do item não bate")
+
+	mockKafka.AssertExpectations(t)
+	mockRabbit.AssertExpectations(t)
 }
 
 func TestFindOrderCache(t *testing.T) {
-	repo, dbpool, redisClient := setupTest(t)
+	repo, dbpool, redisClient, mockKafka, mockRabbit := setupTest(t)
 	t.Cleanup(func() {
 		cleanup(t, dbpool, redisClient)
 		dbpool.Close()
@@ -126,6 +133,10 @@ func TestFindOrderCache(t *testing.T) {
 			PriceAtTime: decimal.NewFromFloat(19.99),
 		},
 	}
+
+	mockKafka.On("PublishOrderCreated", mock.Anything, mock.AnythingOfType("events.OrderCreatedEvent")).Return(nil)
+	mockRabbit.On("Publish", mock.Anything, "email_notifications", mock.AnythingOfType("[]uint8")).Return(nil)
+
 	err := repo.CreateOrder(ctx, order, items)
 	require.NoError(t, err)
 
@@ -143,4 +154,7 @@ func TestFindOrderCache(t *testing.T) {
 	require.NoError(t, err, "A busca no cache não deveria dar erro, mesmo com o banco limpo")
 	require.NotNil(t, cachedOrder, "Deveria encontrar o pedido no cache")
 	require.Equal(t, orderID, cachedOrder.ID, "O ID do pedido do cache está incorreto")
+	
+	mockKafka.AssertExpectations(t)
+	mockRabbit.AssertExpectations(t)
 }

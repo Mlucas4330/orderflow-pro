@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mlucas4330/orderflow-pro/internal/events"
 	"github.com/mlucas4330/orderflow-pro/internal/messaging/producer"
+	"github.com/mlucas4330/orderflow-pro/pkg/messaging"
 	"github.com/mlucas4330/orderflow-pro/pkg/model"
 	redis "github.com/redis/go-redis/v9"
 )
@@ -28,11 +29,11 @@ type OrderRepository interface {
 type PostgresOrderRepository struct {
 	DB               *pgxpool.Pool
 	Redis            *redis.Client
-	KafkaProducer    *producer.KafkaProducer
-	RabbitMQProducer *producer.RabbitMQProducer
+	KafkaProducer    producer.IKafkaProducer
+	RabbitMQProducer producer.IRabbitMQProducer
 }
 
-func NewOrderRepository(pgpool *pgxpool.Pool, redis *redis.Client, kafkaProducer *producer.KafkaProducer, rabbitProducer *producer.RabbitMQProducer) *PostgresOrderRepository {
+func NewOrderRepository(pgpool *pgxpool.Pool, redis *redis.Client, kafkaProducer producer.IKafkaProducer, rabbitProducer producer.IRabbitMQProducer) *PostgresOrderRepository {
 	return &PostgresOrderRepository{
 		DB:               pgpool,
 		Redis:            redis,
@@ -254,6 +255,24 @@ func (r *PostgresOrderRepository) CreateOrder(ctx context.Context, order *model.
 		err := r.KafkaProducer.PublishOrderCreated(context.Background(), event)
 		if err != nil {
 			log.Printf("ERRO ao publicar evento OrderCreated no Kafka: %v", err)
+		}
+	}()
+
+	go func() {
+		notificationPayload := &messaging.NotificationPayload{
+			OrderID:    order.ID.String(),
+			CustomerID: order.CustomerID.String(),
+			Message:    "Seu pedido foi recebido com sucesso!",
+		}
+		body, err := json.Marshal(notificationPayload)
+		if err != nil {
+			log.Printf("ERRO ao serializar mensagem para o RabbitMQ: %v", err)
+			return
+		}
+
+		err = r.RabbitMQProducer.Publish(context.Background(), "email_notifications", body)
+		if err != nil {
+			log.Printf("ERRO ao publicar tarefa no RabbitMQ: %v", err)
 		}
 	}()
 

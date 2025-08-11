@@ -8,6 +8,11 @@ import (
 	rabbitmq "github.com/rabbitmq/amqp091-go"
 )
 
+type IRabbitMQProducer interface {
+	Publish(context.Context, string, []byte) error
+	Close()
+}
+
 type RabbitMQProducer struct {
 	conn    *rabbitmq.Connection
 	channel *rabbitmq.Channel

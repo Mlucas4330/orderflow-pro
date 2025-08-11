@@ -43,27 +43,27 @@ func TestCreateOrderHandler(t *testing.T) {
 
 	mockIdemRepo.On(
 		"GetResponse",
-		mock.AnythingOfType("context.Context"),
+		mock.Anything,
 		mock.AnythingOfType("uuid.UUID"),
 		mock.AnythingOfType("uuid.UUID"),
 	).Return(nil, nil)
 
 	mockProductClient.On(
 		"GetProductDetails",
-		mock.AnythingOfType("context.Context"),
+		mock.Anything,
 		mock.AnythingOfType("*productpb.GetProductDetailsRequest"),
 	).Return(&pb.GetProductDetailsResponse{Price: "19.99"}, nil)
 
 	mockOrderRepo.On(
 		"CreateOrder",
-		mock.AnythingOfType("context.Context"),
+		mock.Anything,
 		mock.AnythingOfType("*model.Order"),
 		mock.AnythingOfType("[]model.OrderItem"),
 	).Return(nil)
 
 	mockIdemRepo.On(
 		"SaveResponse",
-		mock.AnythingOfType("context.Context"),
+		mock.Anything,
 		mock.AnythingOfType("uuid.UUID"),
 		mock.AnythingOfType("uuid.UUID"),
 		mock.AnythingOfType("*model.IdempotencyResponse"),

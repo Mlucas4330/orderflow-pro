@@ -10,6 +10,11 @@ import (
 	kafka "github.com/segmentio/kafka-go"
 )
 
+type IKafkaProducer interface {
+	PublishOrderCreated(context.Context, events.OrderCreatedEvent) error
+	Close() error
+}
+
 type KafkaProducer struct {
 	writer *kafka.Writer
 }

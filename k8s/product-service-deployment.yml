@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: order-service-deployment
+  name: product-service-deployment
   labels:
-    app: order-service
+    app: product-service
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: order-service
+      app: product-service
   template:
     metadata:
       labels:
-        app: order-service
+        app: product-service
     spec:
       containers:
-        - name: order-service
-          image: mlucas4330/orderflow-order-service:v1.0.0
+        - name: product-service
+          image: mlucas4330/orderflow-product-service:v1.0.0
           ports:
-            - containerPort: 8080
+            - containerPort: 50051
           envFrom:
             - configMapRef:
                 name: env-configmap

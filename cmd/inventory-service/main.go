@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -19,7 +20,9 @@ func main() {
 
 	cfg := config.LoadInventoryConfig()
 
-	dbpool, err := pgxpool.New(ctx, cfg.PostgresDSN)
+	postgresDsn := fmt.Sprintf("postgres://%s:%s@%s:5432/%s?sslmode=disable", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresHost, cfg.PostgresDb)
+
+	dbpool, err := pgxpool.New(ctx, postgresDsn)
 	if err != nil {
 		log.Fatalf("Falha ao conectar com o banco de dados: %v", err)
 	}

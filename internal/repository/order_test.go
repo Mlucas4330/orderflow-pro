@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -22,7 +23,9 @@ func setupTest(t *testing.T) (*PostgresOrderRepository, *pgxpool.Pool, *redis.Cl
 
 	ctx := context.Background()
 
-	dbpool, err := pgxpool.New(ctx, cfg.PostgresDSN)
+	postgresDsn := fmt.Sprintf("postgres://%s:%s@%s:5432/%s?sslmode=disable", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresHost, cfg.PostgresDb)
+
+	dbpool, err := pgxpool.New(ctx, postgresDsn)
 	require.NoError(t, err, "Falha ao conectar ao banco de dados de teste")
 
 	redisClient, err := cache.NewRedisClient(ctx, cfg.RedisAddr, cfg.RedisDB)
@@ -154,7 +157,7 @@ func TestFindOrderCache(t *testing.T) {
 	require.NoError(t, err, "A busca no cache não deveria dar erro, mesmo com o banco limpo")
 	require.NotNil(t, cachedOrder, "Deveria encontrar o pedido no cache")
 	require.Equal(t, orderID, cachedOrder.ID, "O ID do pedido do cache está incorreto")
-	
+
 	mockKafka.AssertExpectations(t)
 	mockRabbit.AssertExpectations(t)
 }

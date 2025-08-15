@@ -1,2 +1,2 @@
 .env
-secret.local.yml
+k8s/*.local.yml

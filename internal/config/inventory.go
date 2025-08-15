@@ -7,7 +7,10 @@ import (
 )
 
 type InventoryConfig struct {
-	PostgresDSN  string `env:"POSTGRES_DSN,required"`
+	PostgresUser string `env:"POSTGRES_USER,required"`
+	PostgresPass string `env:"POSTGRES_PASS,required"`
+	PostgresHost string `env:"POSTGRES_HOST,required"`
+	PostgresDb   string `env:"POSTGRES_DB,required"`
 	KafkaBrokers string `env:"KAFKA_BROKERS,required"`
 }
 

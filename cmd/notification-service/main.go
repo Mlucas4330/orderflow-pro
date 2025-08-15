@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/mlucas4330/orderflow-pro/internal/config"
@@ -12,7 +13,9 @@ import (
 func main() {
 	cfg := config.LoadNotificationConfig()
 
-	rabbitConsumer := consumer.NewRabbitMQConsumer(cfg.RabbitURL)
+	rabbitmqUrl := fmt.Sprintf("amqp://%s:%s@%s:5672/", cfg.RabbitmqUser, cfg.RabbitmqPass, cfg.RabbitmqHost)
+
+	rabbitConsumer := consumer.NewRabbitMQConsumer(rabbitmqUrl)
 	defer rabbitConsumer.Close()
 
 	msgs, err := rabbitConsumer.Consume("email_notifications")

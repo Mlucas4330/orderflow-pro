@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: product-service
-          image: mlucas4330/orderflow-product-service:v1.0.0
+          image: mlucas4330/orderflow-pro-product-service:v1.0.0
           ports:
             - containerPort: 50051
           envFrom:

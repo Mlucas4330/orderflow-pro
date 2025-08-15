@@ -7,7 +7,9 @@ import (
 )
 
 type NotificationConfig struct {
-	RabbitURL string `env:"RABBITMQ_URL,required"`
+	RabbitmqUser string `env:"RABBITMQ_USER,required"`
+	RabbitmqPass string `env:"RABBITMQ_PASS,required"`
+	RabbitmqHost string `env:"RABBITMQ_HOST,required"`
 }
 
 func LoadNotificationConfig() *NotificationConfig {

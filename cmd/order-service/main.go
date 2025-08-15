@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -24,7 +25,9 @@ func main() {
 
 	cfg := config.LoadOrderConfig()
 
-	dbpool, err := pgxpool.New(ctx, cfg.PostgresDSN)
+	postgresDsn := fmt.Sprintf("postgres://%s:%s@%s:5432/%s?sslmode=disable", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresHost, cfg.PostgresDb)
+	
+	dbpool, err := pgxpool.New(ctx, postgresDsn)
 	if err != nil {
 		log.Fatalf("Falha ao conectar com o banco de dados: %v", err)
 	}
@@ -39,7 +42,9 @@ func main() {
 	kafkaProducer := producer.NewKafkaProducer(cfg.KafkaBrokers)
 	defer kafkaProducer.Close()
 
-	rabbitProducer := producer.NewRabbitMQProducer(cfg.RabbitURL)
+	rabbitmqUrl := fmt.Sprintf("amqp://%s:%s@%s:5672/", cfg.RabbitmqUser, cfg.RabbitmqPass, cfg.RabbitmqHost)
+
+	rabbitProducer := producer.NewRabbitMQProducer(rabbitmqUrl)
 	defer rabbitProducer.Close()
 
 	grpcconn, err := grpc.NewClient(cfg.ProductServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))

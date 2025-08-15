@@ -16,7 +16,7 @@ jobs:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASS }}
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
         ports:
           - 5432:5432
@@ -72,7 +72,7 @@ jobs:
           --health-retries 5
     
     env:
-      POSTGRES_DSN: postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}?sslmode=disable
+      POSTGRES_DSN: postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASS }}@localhost:5432/${{ secrets.POSTGRES_DB }}?sslmode=disable
       REDIS_ADDR: localhost:6379
       REDIS_DB: 1
       KAFKA_BROKERS: localhost:9092

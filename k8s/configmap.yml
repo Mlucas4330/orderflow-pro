@@ -3,12 +3,12 @@ kind: ConfigMap
 metadata:
   name: env-configmap
 data:
-  POSTGRES_DSN: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@db-service:5432/$(POSTGRES_DB)?sslmode=disable"
   REDIS_ADDR: "redis-service:6379"
   REDIS_DB: "3"
   KAFKA_BROKERS: "kafka-service:9093"
   PRODUCT_SERVICE_ADDR: "product-service:50051"
+  POSTGRES_DB: "orderflow_dev_db"
+  POSTGRES_HOST: "postgres-service"
   GOOSE_DRIVER: "postgres"
-  GOOSE_DBSTRING: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@db-service:5432/$(POSTGRES_DB)?sslmode=disable"
   GOOSE_MIGRATION_DIR: "./db/migrations"
-  RABBITMQ_URL: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASS)@rabbitmq-service:5672/"
+  RABBITMQ_HOST: "rabbitmq-service"

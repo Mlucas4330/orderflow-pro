@@ -19,11 +19,17 @@ spec:
           ports:
             - containerPort: 5672
             - containerPort: 15672
-          envFrom:
-            - configMapRef:
-                name: env-configmap
-            - secretRef:
-                name: env-secrets
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: env-secrets
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: env-secrets
+                  key: RABBITMQ_PASS
           volumeMounts:
             - name: rabbitmq-data
               mountPath: /var/lib/rabbitmq

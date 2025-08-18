@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: notification-service
-          image: mlucas4330/orderflow-pro-notification-service:v1.0.0
+          image: mlucas4330/orderflow-pro-notification-service:v1.0.1
           envFrom:
             - configMapRef:
                 name: env-configmap

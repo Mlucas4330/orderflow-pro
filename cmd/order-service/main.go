@@ -14,6 +14,7 @@ import (
 	"github.com/mlucas4330/orderflow-pro/internal/middleware"
 	"github.com/mlucas4330/orderflow-pro/internal/repository"
 	pb "github.com/mlucas4330/orderflow-pro/pkg/productpb"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -61,6 +62,9 @@ func main() {
 
 	authMiddleware := middleware.NewAuthMiddleware(cfg.JWTSecretKey)
 
+	router.Use(middleware.PrometheusMiddleware())
+
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	router.GET("/ping", healthHandler.Check)
 	apiV1 := router.Group("/api/v1")
 	{

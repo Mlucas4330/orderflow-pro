@@ -31,12 +31,16 @@ func main() {
 			var payload messaging.NotificationPayload
 			if err := json.Unmarshal(d.Body, &payload); err != nil {
 				log.Printf("Erro ao desserializar mensagem: %s", err)
-				d.Nack(false, false)
+				if err := d.Nack(false, false); err != nil {
+					log.Printf("Erro ao finalizar entrega: %v", err)
+				}
 				continue
 			}
 
 			log.Printf("TAREFA RECEBIDA: Enviando e-mail de confirmação para o cliente %s sobre o pedido %s.", payload.CustomerID, payload.OrderID)
-			d.Ack(false)
+			if err := d.Ack(false); err != nil {
+				log.Printf("Erro ao finalizar entrega: %v", err)
+			}
 		}
 	}()
 

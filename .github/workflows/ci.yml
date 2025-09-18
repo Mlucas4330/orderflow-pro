@@ -97,7 +97,8 @@ jobs:
         run: go install github.com/pressly/goose/v3/cmd/goose@latest
 
       - name: Run DB migrations
-        run: goose -dir "db/migrations" postgres "localhost://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASS }}@${{ secrets.POSTGRES_HOST }}:5432/orderflow_test_db?sslmode=disable" up
+        run: goose -dir "db/migrations" postgres "postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASS }}@${{ secrets.POSTGRES_HOST }}:5432/orderflow_test_db?sslmode=disable" up
+
 
       - name: Run Linter
         uses: golangci/golangci-lint-action@v6

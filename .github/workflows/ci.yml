@@ -75,13 +75,13 @@ jobs:
       POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
       POSTGRES_PASS: ${{ secrets.POSTGRES_PASS }}
       POSTGRES_DB: orderflow_test_db
-      POSTGRES_HOST: ${{ secrets.POSTGRES_HOST}}
+      POSTGRES_HOST: localhost
       REDIS_ADDR: localhost:6379
       REDIS_DB: 1
       KAFKA_BROKERS: localhost:9092
       RABBITMQ_USER: ${{ secrets.RABBITMQ_USER }}
       RABBITMQ_PASS: ${{ secrets.RABBITMQ_PASS }}
-      RABBITMQ_HOST: ${{ secrets.RABBITMQ_HOST }}
+      RABBITMQ_HOST: localhost
       JWT_SECRET_KEY: ${{secrets.JWT_SECRET_KEY}}
 
     steps:
@@ -97,7 +97,7 @@ jobs:
         run: go install github.com/pressly/goose/v3/cmd/goose@latest
 
       - name: Run DB migrations
-        run: goose -dir "db/migrations" postgres "postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASS }}@${{ secrets.POSTGRES_HOST }}:5432/orderflow_test_db?sslmode=disable" up
+        run: goose -dir "db/migrations" postgres "postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASS }}@localhost:5432/orderflow_test_db?sslmode=disable" up
 
 
       - name: Run Linter
